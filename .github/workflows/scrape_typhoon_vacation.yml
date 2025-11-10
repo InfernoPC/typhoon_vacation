@@ -35,8 +35,16 @@ jobs:
           pip install -r requirements.txt
     
       - name: Run scraper
+        env:
+          # 跳過產生 execution_log.json，執行記錄可透過 GitHub Actions 查詢
+          SKIP_EXECUTION_LOG: "1"
         run: |
+          echo "=== 開始執行爬蟲 ==="
+          echo "執行時間: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Workflow Run ID: ${{ github.run_id }}"
+          echo "Workflow Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python scrape_typhoon_vacation.py
+          echo "=== 爬蟲執行完成 ==="
     
       - name: Check for changes
         id: check_changes
@@ -44,10 +52,29 @@ jobs:
           if [ -n "$(git status --porcelain output/)" ]; then
             echo "changes=true" >> $GITHUB_OUTPUT
             echo "有變更，準備提交"
+            echo "變更的檔案:"
+            git status --porcelain output/ | sed 's/^/  - /'
           else
             echo "changes=false" >> $GITHUB_OUTPUT
             echo "無變更，跳過提交"
           fi
+          
+      - name: Record execution summary
+        if: always()
+        run: |
+          echo "## 執行摘要" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**執行時間**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**觸發方式**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          CHANGES="${{ steps.check_changes.outputs.changes }}"
+          if [ "$CHANGES" == "true" ]; then
+            echo "**狀態**: ✅ 有變更，已提交" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**狀態**: ℹ️ 無變更，跳過提交" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**查看執行記錄**: [${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
     
       - name: Configure Git
         if: steps.check_changes.outputs.changes == 'true'
