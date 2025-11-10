@@ -2,8 +2,12 @@ name: Scrape Typhoon Vacation Data
 
 on:
   schedule:
-    # 每小時執行一次（UTC 時間）
-    - cron: '0 * * * *'
+    # 每小時執行（台灣 00:00–17:59 → UTC 前一天 16:00–23:59）
+    - cron: "0 16-23 * * *"
+    # 每小時執行（台灣 00:00–17:59 → UTC 00:00–09:59）
+    - cron: "0 0-9 * * *"
+    # 每 15 分鐘（台灣 18:00–23:59 → UTC 10:00–15:59）
+    - cron: "*/15 10-15 * * *"
   workflow_dispatch:  # 允許手動觸發
   push:
     branches:
