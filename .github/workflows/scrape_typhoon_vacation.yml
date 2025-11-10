@@ -1,0 +1,64 @@
+name: Scrape Typhoon Vacation Data
+
+on:
+  schedule:
+    # 每小時執行一次（UTC 時間）
+    - cron: '0 * * * *'
+  workflow_dispatch:  # 允許手動觸發
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - 'output/**'  # 忽略 output 目錄的變更，避免無限循環
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 需要寫入權限來提交變更
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 取得完整歷史記錄
+    
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+    
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+    
+      - name: Run scraper
+        run: |
+          python scrape_typhoon_vacation.py
+    
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain output/)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "有變更，準備提交"
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "無變更，跳過提交"
+          fi
+    
+      - name: Configure Git
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+    
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git add output/
+          git commit -m "chore: 更新颱風放假資料 [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
+          git push
+
