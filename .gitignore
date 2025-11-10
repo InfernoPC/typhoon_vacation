@@ -23,6 +23,9 @@ env/
 .DS_Store
 Thumbs.db
 
-# 不要忽略 output/ 目錄，因為需要提交到 Git
+# 執行記錄檔（不提交到 Git，可透過 GitHub Actions 執行記錄查詢）
+output/execution_log.json
+
+# 不要忽略 output/ 目錄，因為需要提交縣市 JSON 檔案到 Git
 
 

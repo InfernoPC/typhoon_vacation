@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import re
 import sys
 import time
@@ -157,7 +158,12 @@ def write_outputs(update_time: str, county_status: List[Tuple[str, str]]) -> Non
 def write_execution_log(update_time: str, county_status: List[Tuple[str, str]]) -> None:
 	"""
 	將更新時間寫到統一的執行紀錄檔，不放在各縣市檔案中。
+	可透過環境變數 SKIP_EXECUTION_LOG 來跳過產生 execution_log。
 	"""
+	# 檢查是否要跳過 execution_log
+	if os.environ.get("SKIP_EXECUTION_LOG", "").lower() in ("1", "true", "yes"):
+		return
+	
 	OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 	log_path = OUTPUT_DIR / "execution_log.json"
 	payload = {
