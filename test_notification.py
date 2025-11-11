@@ -65,6 +65,22 @@ def create_test_adaptive_card() -> dict:
                     "isSubtle": True,
                     "size": "Small",
                     "color": "Attention"
+                },
+                {
+                    "type": "ActionSet",
+                    "spacing": "Small",
+                    "actions": [
+                        {
+                            "type": "Action.OpenUrl",
+                            "title": "📦 GitHub Repo",
+                            "url": "https://github.com/InfernoPC/typhoon_vacation"
+                        },
+                        {
+                            "type": "Action.OpenUrl",
+                            "title": "⚡ Power Automate Flow",
+                            "url": "https://make.powerautomate.com/environments/ce11858d-af1c-e80a-9766-7541e365ec90/flows/c0119267-9a89-46a5-b285-8c9d6e5f1211/details"
+                        }
+                    ]
                 }
             ],
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
