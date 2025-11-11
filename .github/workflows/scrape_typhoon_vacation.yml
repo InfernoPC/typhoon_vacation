@@ -58,10 +58,28 @@ jobs:
             echo "有變更，準備提交"
             echo "變更的檔案:"
             git status --porcelain output/ | sed 's/^/  - /'
+            
+            # 檢查臺北市或新北市是否有變更
+            if git status --porcelain output/ | grep -E "(臺北市|新北市)\.json"; then
+              echo "taipei_or_newtaipei_changed=true" >> $GITHUB_OUTPUT
+              echo "⚠️ 臺北市或新北市有變更，將發送通知"
+            else
+              echo "taipei_or_newtaipei_changed=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "changes=false" >> $GITHUB_OUTPUT
+            echo "taipei_or_newtaipei_changed=false" >> $GITHUB_OUTPUT
             echo "無變更，跳過提交"
           fi
+      
+      - name: Send notification to Power Automate
+        if: steps.check_changes.outputs.taipei_or_newtaipei_changed == 'true'
+        env:
+          POWER_AUTOMATE_ENDPOINT: ${{ secrets.POWER_AUTOMATE_ENDPOINT }}
+        run: |
+          echo "=== 發送通知 ==="
+          python send_notification.py
+          echo "=== 通知發送完成 ==="
           
       - name: Record execution summary
         if: always()

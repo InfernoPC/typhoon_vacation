@@ -144,8 +144,39 @@ if data['workflow_runs']:
 
 您可以使用以下 URL 格式直接查看執行記錄：
 
-```
+```plain
 https://github.com/InfernoPC/typhoon_vacation/actions/workflows/scrape_typhoon_vacation.yml
+```
+
+### 通知功能
+
+當**臺北市**或**新北市**的颱風假狀態有變更時，系統會自動發送通知到 Microsoft Teams（透過 Power Automate）。
+
+#### 設定 Power Automate 通知
+
+1. 在 GitHub 倉庫的 **Settings** > **Secrets and variables** > **Actions** 中新增 Secret：
+   - **Name**: `POWER_AUTOMATE_ENDPOINT`
+   - **Value**: 你的 Power Automate HTTP endpoint URL
+
+2. 通知內容包含：
+   - 變更的縣市名稱
+   - 變更前的狀態
+   - 變更後的狀態
+   - 資料來源連結
+
+3. 只有當臺北市或新北市的狀態**真的有變更**時才會發送通知（避免重複通知）
+
+#### 測試通知功能
+
+在本地測試：
+
+```bash
+# 不設定環境變數，會顯示預覽內容
+python send_notification.py
+
+# 設定環境變數後發送實際通知
+export POWER_AUTOMATE_ENDPOINT="your-endpoint-url"
+python send_notification.py
 ```
 
 ### 設定說明
@@ -153,6 +184,7 @@ https://github.com/InfernoPC/typhoon_vacation/actions/workflows/scrape_typhoon_v
 1. 確保倉庫已啟用 GitHub Actions
 2. 確保 `output/` 目錄已提交到 Git（不被 .gitignore 忽略）
 3. Workflow 會自動使用 `GITHUB_TOKEN` 進行提交，無需額外設定
+4. （選用）設定 `POWER_AUTOMATE_ENDPOINT` Secret 以啟用通知功能
 
 ### 手動觸發
 
