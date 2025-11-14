@@ -77,7 +77,9 @@ def parse_county_rows(soup: BeautifulSoup) -> List[Tuple[str, str]]:
 
     # 讀取資料列
     rows = target_table.find_all("tr")
-    current_region = ""
+    
+    # 定義區域名稱，用於過濾
+    regions = {"北部地區", "中部地區", "南部地區", "東部地區", "外島地區", "區域"}
     
     for tr in rows:
         cells = tr.find_all(["td", "th"])
@@ -91,17 +93,13 @@ def parse_county_rows(soup: BeautifulSoup) -> List[Tuple[str, str]]:
             county = cells[1].get_text(" ", strip=True)
             status = cells[2].get_text(" ", strip=True)
             
-            # 更新當前區域（如果第一欄有內容）
-            if region and region not in ["縣市名稱", "區域"]:
-                current_region = region
-            
-            # 略過標題列
+            # 略過標題列和區域名稱（不儲存區域資料）
             if county in ["縣市名稱", "縣市", ""] or "備註" in county:
                 continue
-                
-            # 將區域資料也儲存
-            if current_region and current_region not in [c for c, _ in results]:
-                results.append((current_region, ""))
+            
+            # 略過區域本身（不將區域當作縣市儲存）
+            if county in regions:
+                continue
             
             results.append((county, status))
             
@@ -110,8 +108,12 @@ def parse_county_rows(soup: BeautifulSoup) -> List[Tuple[str, str]]:
             county = cells[0].get_text(" ", strip=True)
             status = cells[1].get_text(" ", strip=True)
             
-            # 略過標題列或空白
+            # 略過標題列、空白和區域名稱
             if not county or county in ["縣市名稱", "縣市", "區域"] or "備註" in county:
+                continue
+            
+            # 略過區域本身
+            if county in regions:
                 continue
             
             results.append((county, status))
