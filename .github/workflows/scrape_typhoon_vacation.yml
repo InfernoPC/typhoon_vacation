@@ -21,93 +21,96 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # 需要寫入權限來提交變更
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 取得完整歷史記錄
-    
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-    
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-    
-      - name: Run scraper
-        env:
-          # 跳過產生 execution_log.json，執行記錄可透過 GitHub Actions 查詢
-          SKIP_EXECUTION_LOG: "1"
-        run: |
-          echo "=== 開始執行爬蟲 ==="
-          echo "執行時間: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          echo "Workflow Run ID: ${{ github.run_id }}"
-          echo "Workflow Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          python scrape_typhoon_vacation.py
-          echo "=== 爬蟲執行完成 ==="
-    
-      - name: Check for changes
-        id: check_changes
-        run: |
-          if [ -n "$(git status --porcelain output/)" ]; then
-            echo "changes=true" >> $GITHUB_OUTPUT
-            echo "有變更，準備提交"
-            echo "變更的檔案:"
-            git status --porcelain output/ | sed 's/^/  - /'
-            
-            # 檢查臺北市或新北市是否有變更
-            if git status --porcelain output/ | grep -E "(臺北市|新北市)\.json"; then
-              echo "taipei_or_newtaipei_changed=true" >> $GITHUB_OUTPUT
-              echo "⚠️ 臺北市或新北市有變更，將發送通知"
-            else
-              echo "taipei_or_newtaipei_changed=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "changes=false" >> $GITHUB_OUTPUT
-            echo "taipei_or_newtaipei_changed=false" >> $GITHUB_OUTPUT
-            echo "無變更，跳過提交"
-          fi
-      
-      - name: Send notification to Power Automate
-        if: steps.check_changes.outputs.taipei_or_newtaipei_changed == 'true'
-        env:
-          POWER_AUTOMATE_ENDPOINT: ${{ secrets.POWER_AUTOMATE_ENDPOINT }}
-        run: |
-          echo "=== 發送通知 ==="
-          python send_notification.py
-          echo "=== 通知發送完成 ==="
-          
-      - name: Record execution summary
-        if: always()
-        run: |
-          echo "## 執行摘要" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**執行時間**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "**Workflow Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "**觸發方式**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          CHANGES="${{ steps.check_changes.outputs.changes }}"
-          if [ "$CHANGES" == "true" ]; then
-            echo "**狀態**: ✅ 有變更，已提交" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**狀態**: ℹ️ 無變更，跳過提交" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**查看執行記錄**: [${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-    
-      - name: Configure Git
-        if: steps.check_changes.outputs.changes == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-    
-      - name: Commit and push changes
-        if: steps.check_changes.outputs.changes == 'true'
-        run: |
-          git add output/
-          git commit -m "chore: 更新颱風放假資料 [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
-          git push
 
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          fetch-depth: 0  # 取得完整歷史記錄
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run scraper
+      env:
+          # 跳過產生 execution_log.json，執行記錄可透過 GitHub Actions 查詢
+        SKIP_EXECUTION_LOG: "1"
+      run: |
+        echo "=== 開始執行爬蟲 ==="
+        echo "執行時間: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+        echo "Workflow Run ID: ${{ github.run_id }}"
+        echo "Workflow Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        python scrape_typhoon_vacation.py
+        echo "=== 爬蟲執行完成 ==="
+
+    - name: Check for changes
+      id: check_changes
+      run: |
+        echo "=== Debug: git status --porcelain output/ ==="
+        git status --porcelain output/
+        echo "=== Debug: ls output/ ==="
+        ls -l output/
+        if [ -n "$(git status --porcelain output/)" ]; then
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "有變更，準備提交"
+          echo "變更的檔案:"
+          git status --porcelain output/ | sed 's/^/  - /'
+
+          # 處理 台北市/臺北市/新北市
+          if git status --porcelain output/ | grep -E "(台北市|臺北市|新北市)\.json$"; then
+            echo "taipei_or_newtaipei_changed=true" >> $GITHUB_OUTPUT
+            echo "⚠️ 台北市、臺北市或新北市有變更，將發送通知"
+          else
+            echo "taipei_or_newtaipei_changed=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "taipei_or_newtaipei_changed=false" >> $GITHUB_OUTPUT
+          echo "無變更，跳過提交"
+        fi
+
+    - name: Send notification to Power Automate
+      if: steps.check_changes.outputs.taipei_or_newtaipei_changed == 'true'
+      env:
+        POWER_AUTOMATE_ENDPOINT: ${{ secrets.POWER_AUTOMATE_ENDPOINT }}
+      run: |
+        echo "=== 發送通知 ==="
+        python send_notification.py
+        echo "=== 通知發送完成 ==="
+
+    - name: Record execution summary
+      if: always()
+      run: |
+        echo "## 執行摘要" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**執行時間**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "**觸發方式**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        CHANGES="${{ steps.check_changes.outputs.changes }}"
+        if [ "$CHANGES" == "true" ]; then
+          echo "**狀態**: ✅ 有變更，已提交" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "**狀態**: ℹ️ 無變更，跳過提交" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**查看執行記錄**: [${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+    - name: Configure Git
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+    - name: Commit and push changes
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git add output/
+        git commit -m "chore: 更新颱風放假資料 [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
+        git push
