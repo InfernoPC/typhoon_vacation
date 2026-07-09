@@ -76,10 +76,11 @@ jobs:
           echo "無變更，跳過提交"
         fi
 
-    - name: Send notification to Power Automate
+    - name: Send notification to Telegram
       if: steps.check_changes.outputs.taipei_or_newtaipei_changed == 'true'
       env:
-        POWER_AUTOMATE_ENDPOINT: ${{ secrets.POWER_AUTOMATE_ENDPOINT }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
         echo "=== 發送通知 ==="
         python send_notification.py

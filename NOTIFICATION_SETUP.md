@@ -1,12 +1,12 @@
 # 通知功能設定指南
 
-本指南說明如何設定 Power Automate 通知功能，當臺北市或新北市的颱風假狀態有變更時，自動發送通知到 Microsoft Teams。
+本指南說明如何設定 Telegram 通知功能，當臺北市或新北市的颱風假狀態有變更時，透過 Telegram Bot 自動發送通知。
 
 ## 📋 功能說明
 
 - **監控縣市**: 臺北市、新北市
 - **觸發條件**: 當這兩個縣市的颱風假狀態有變更時
-- **通知內容**: 
+- **通知內容**:
   - 變更的縣市名稱
   - 變更前的狀態
   - 變更後的狀態
@@ -15,26 +15,23 @@
 
 ## 🔧 設定步驟
 
-### 步驟 1: 建立 Power Automate Flow
+### 步驟 1: 建立 Telegram Bot 並取得 Chat ID
 
-1. 前往 [Power Automate](https://make.powerautomate.com/)
-2. 建立新的 Flow
-3. 選擇觸發器：**When a HTTP request is received**
-4. 在觸發器中，會自動產生一個 HTTP POST URL（endpoint）
-5. 加入動作：**Post adaptive card in a chat or channel**
-6. 設定要發送的 Teams 頻道或聊天室
-7. 在 Adaptive Card 欄位中，使用動態內容：`triggerBody()?['message']`
-8. 儲存 Flow 並複製 HTTP POST URL
+1. 在 Telegram 中搜尋 [@BotFather](https://t.me/BotFather)
+2. 傳送 `/newbot`，依指示設定 Bot 名稱與 username
+3. BotFather 會回覆一組 **Bot Token**（格式類似 `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`），請妥善保存
+4. 取得 **Chat ID**：
+   - 通知到個人：先傳一則訊息給你的 Bot，再開啟
+     `https://api.telegram.org/bot<你的-BOT-TOKEN>/getUpdates`，從回應中的 `chat.id` 取得
+   - 通知到群組：將 Bot 加入群組並在群組中傳一則訊息，再用同樣方式從 `getUpdates` 取得（群組的 Chat ID 為負數）
 
-### 步驟 2: 在 GitHub 設定 Secret
+### 步驟 2: 在 GitHub 設定 Secrets
 
 1. 前往你的 GitHub 倉庫
 2. 點擊 **Settings** > **Secrets and variables** > **Actions**
-3. 點擊 **New repository secret**
-4. 填寫：
-   - **Name**: `POWER_AUTOMATE_ENDPOINT`
-   - **Secret**: 貼上步驟 1 複製的 HTTP POST URL
-5. 點擊 **Add secret**
+3. 點擊 **New repository secret**，新增以下兩個 Secret：
+   - **Name**: `TELEGRAM_BOT_TOKEN`，**Secret**: 步驟 1 取得的 Bot Token
+   - **Name**: `TELEGRAM_CHAT_ID`，**Secret**: 步驟 1 取得的 Chat ID
 
 ### 步驟 3: 測試通知功能
 
@@ -49,10 +46,11 @@ python send_notification.py
 
 ```bash
 # 使用測試腳本發送測試通知
-python test_notification.py <你的-POWER_AUTOMATE_ENDPOINT>
+python test_notification.py <你的-BOT-TOKEN> <你的-CHAT-ID>
 
 # 或設定環境變數
-export POWER_AUTOMATE_ENDPOINT="你的-POWER_AUTOMATE_ENDPOINT"
+export TELEGRAM_BOT_TOKEN="你的-BOT-TOKEN"
+export TELEGRAM_CHAT_ID="你的-CHAT-ID"
 python test_notification.py
 ```
 
@@ -63,29 +61,29 @@ python test_notification.py
    - 前往 GitHub 倉庫的 **Actions** 標籤
    - 選擇 **Scrape Typhoon Vacation Data**
    - 點擊 **Run workflow**
-3. 查看執行記錄，確認 "Send notification to Power Automate" 步驟是否執行
-4. 檢查 Teams 頻道是否收到通知
+3. 查看執行記錄，確認 "Send notification to Telegram" 步驟是否執行
+4. 檢查 Telegram 是否收到通知
 
-## 📝 通知卡片格式範例
+## 📝 通知訊息格式範例
 
-當臺北市有變更時，Teams 會收到類似以下的 Adaptive Card：
+當臺北市有變更時，Telegram 會收到類似以下的訊息：
 
 ```
 🌀 颱風假異動通知
 
 以下縣市的颱風假狀態已更新：
 
-─────────────────────────
-**臺北市**
-
-變更前：  正常上班、正常上課。
-變更後：  士林區永福里、新安里、陽明里、公館里、菁山里、
-         平等里、溪山里、翠山里:今天停止上班、停止上課。 
-         北投區湖田里、湖山里、大屯里、泉源里:今天停止上班、
-         停止上課。
+臺北市
+變更前：正常上班、正常上課。
+變更後：士林區永福里、新安里、陽明里、公館里、菁山里、
+       平等里、溪山里、翠山里:今天停止上班、停止上課。
+       北投區湖田里、湖山里、大屯里、泉源里:今天停止上班、
+       停止上課。
 
 📍 資料來源：行政院人事行政總處
 ```
+
+訊息下方附有「📦 GitHub Repo」按鈕，可直接開啟本專案頁面。
 
 ## 🔍 檢查執行狀態
 
@@ -93,7 +91,7 @@ python test_notification.py
 
 1. 前往 **Actions** 標籤
 2. 點擊最近的 workflow 執行
-3. 查看 "Send notification to Power Automate" 步驟
+3. 查看 "Send notification to Telegram" 步驟
 4. 如果看到 "✅ 通知發送成功"，表示通知已成功發送
 
 ### 查看執行條件
@@ -107,17 +105,16 @@ python test_notification.py
 ### 問題：沒有收到通知
 
 檢查清單：
-- [ ] 確認 GitHub Secret `POWER_AUTOMATE_ENDPOINT` 已正確設定
-- [ ] 確認 Power Automate Flow 處於「已開啟」狀態
+- [ ] 確認 GitHub Secrets `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 已正確設定
+- [ ] 確認 Chat ID 正確（群組 ID 為負數；群組升級為 supergroup 後 ID 會改變）
+- [ ] 若通知到群組，確認 Bot 仍在群組中且未被封鎖
 - [ ] 檢查 GitHub Actions 執行記錄中是否有錯誤訊息
 - [ ] 確認臺北市或新北市的狀態確實有變更（不是只有時間戳記）
-- [ ] 檢查 Power Automate Flow 的執行歷史
 
 ### 問題：通知內容不正確
 
-1. 檢查 `send_notification.py` 中的 `create_adaptive_card()` 函數
+1. 檢查 `send_notification.py` 中的 `create_telegram_message()` 函數
 2. 使用 `test_notification.py` 發送測試通知來驗證格式
-3. 確認 Power Automate 中的 Adaptive Card 設定正確
 
 ### 問題：收到重複通知
 
@@ -134,14 +131,14 @@ python test_notification.py
 
 ## 🔗 參考資源
 
-- [Power Automate 文件](https://docs.microsoft.com/power-automate/)
-- [Adaptive Cards 設計工具](https://adaptivecards.io/designer/)
+- [Telegram Bot API 文件](https://core.telegram.org/bots/api)
+- [BotFather](https://t.me/BotFather)
 - [GitHub Actions 文件](https://docs.github.com/actions)
 - [行政院人事行政總處](https://www.dgpa.gov.tw/typh/daily/nds.html)
 
 ## 💡 提示
 
 - 建議先使用 `test_notification.py` 測試通知是否正常運作
-- 可以修改 `send_notification.py` 中的 Adaptive Card 格式來客製化通知樣式
+- 可以修改 `send_notification.py` 中的 `create_telegram_message()` 來客製化通知樣式
 - 如果要監控其他縣市，修改 `send_notification.py` 中的 `counties_to_check` 列表
-- Power Automate endpoint URL 應該保密，不要提交到版本控制中
+- Bot Token 應該保密，不要提交到版本控制中
